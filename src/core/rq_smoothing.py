@@ -1,4 +1,4 @@
-"""基于随机量化的随机平滑推理 (RQ-Smoothing)。"""
+# 基于随机量化的随机平滑推理 (RQ-Smoothing)
 
 import torch
 

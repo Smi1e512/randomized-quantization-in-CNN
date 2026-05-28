@@ -1,4 +1,4 @@
-"""自适应攻击扫描: 对扫描选出的最优配置同时跑 clean/PGD/EOT-PGD/AutoAttack-rand 四种评测, 通过 --preset (main+diag/A/B/C/diag) 或 --configs mode:defense:n_bins 指定。"""
+# 自适应攻击
 
 import argparse
 import os
@@ -17,7 +17,7 @@ from src.models import get_resnet50_cifar10
 from src.utils import CSVLogger, set_seed
 
 
-# 元素 = (config_label, mode, defense, n_bins, sweep_origin, pgd20_known); 三类扫描每类最优+次优作正样本, 加 2 条同源对角线对照, 共 10 条
+# 配置列表 (config_label, mode, defense, n_bins, sweep_origin, pgd20_known)
 _CONFIGS = [
     ("A_gaussian_n3",   "gaussian", "rq",       3,  "A",      39.22),  # 扫描 A 全局最优
     ("A_baseline_n5",   "baseline", "rq",       5,  "A",      35.90),  # 扫描 A baseline 最优 (梯度遮蔽检验)
@@ -55,7 +55,6 @@ def load_model(checkpoint_path, device):
 
 
 def _build_adaptive_wrapper(args, model, defense, eot_k: int):
-    """为自适应攻击构造可导模型: rq → BPDA + EOT, gaussian → 直接 EOT (本身可导)。"""
     if defense == "rq":
         from src.core import RandomizedQuantizationAugModule
 
@@ -76,7 +75,6 @@ def _build_adaptive_wrapper(args, model, defense, eot_k: int):
 
 
 def make_attack(args, model, eps, defense, attack_name):
-    """attack_name 显式传入, 本脚本一次跑多种攻击不依赖 args.attack。"""
     n_classes = 10
 
     if attack_name in ("fgsm", "pgd"):
@@ -149,7 +147,6 @@ def evaluate_attack_single(defense, attack_name, model, loader, eps, args, devic
 
 
 def parse_custom_configs(spec_list):
-    """解析 --configs mode:defense:n_bins, 返回与 _CONFIGS 同结构的元组列表。"""
     configs = []
     for spec in spec_list:
         parts = spec.split(":")
@@ -168,37 +165,28 @@ def parse_custom_configs(spec_list):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="在最优 n 配置下做自适应攻击评测 (clean + PGD + EOT-PGD + AutoAttack)"
-    )
+    parser = argparse.ArgumentParser()
 
     parser.add_argument("--preset", type=str, default=None, choices=list(_PRESETS.keys()))
-    parser.add_argument("--configs", type=str, nargs="+", default=None,
-                        help="自定义配置, 格式 mode:defense:n_bins (多个用空格)")
-
+    parser.add_argument("--configs", type=str, nargs="+", default=None, help="自定义配置")
     parser.add_argument(
         "--attacks", type=str, nargs="+",
         default=["clean", "pgd", "eot_pgd", "autoattack"],
         choices=["clean", "fgsm", "pgd", "eot_pgd", "autoattack"],
     )
-
     parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--n_samples", type=int, default=100, help="软投票次数")
+    parser.add_argument("--n_samples", type=int, default=100)
     parser.add_argument("--gaussian_std", type=float, default=0.1)
     parser.add_argument("--num_workers", type=int, default=2)
-
-    parser.add_argument("--epsilon", type=float, default=8.0, help="单位 1/255 (默认 8/255 任务书标准)")
+    parser.add_argument("--epsilon", type=float, default=8.0)
     parser.add_argument("--pgd_steps", type=int, default=20)
     parser.add_argument("--pgd_alpha", type=float, default=2 / 255)
-    parser.add_argument("--eot_k", type=int, default=10, help="EOT-PGD 时攻击端对随机变换的采样次数")
-    parser.add_argument("--aa_version", type=str, default="rand",
-                        choices=["standard", "rand", "plus"],
-                        help="对随机化防御必须用 rand")
-
+    parser.add_argument("--eot_k", type=int, default=10)
+    parser.add_argument("--aa_version", type=str, default="rand", choices=["standard", "rand", "plus"])
     parser.add_argument("--data_dir", type=str, default="./data")
     parser.add_argument("--checkpoint_dir", type=str, default="./checkpoints")
     parser.add_argument("--num_eval", type=int, default=None)
-    parser.add_argument("--out_csv", type=str, required=True, help="存在则追加, 不会覆盖")
+    parser.add_argument("--out_csv", type=str, required=True)
     parser.add_argument("--seed", type=int, default=42)
 
     return parser.parse_args()

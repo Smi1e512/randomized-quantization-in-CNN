@@ -1,0 +1,10 @@
+model,defense,n_bins,n_samples,eot_k,aa_version,attack,eps_x255,accuracy,clean_known,pgd_known,gap_vs_clean
+baseline,no_defense,8,100,10,-,eot_pgd_with_bpda,8.0,0.0000,95.43,0.00,-95.4300
+baseline,gaussian,8,100,10,-,eot_pgd_with_bpda,8.0,0.5100,25.08,15.21,-24.5700
+baseline,rq,8,100,10,-,eot_pgd_with_bpda,8.0,0.0900,84.87,19.29,-84.7800
+gaussian,no_defense,8,100,10,-,eot_pgd_with_bpda,8.0,7.3800,89.91,7.52,-82.5300
+gaussian,gaussian,8,100,10,-,eot_pgd_with_bpda,8.0,11.9600,91.87,16.87,-79.9100
+gaussian,rq,8,100,10,-,eot_pgd_with_bpda,8.0,14.4000,90.58,20.74,-76.1800
+rq,no_defense,8,100,10,-,eot_pgd_with_bpda,8.0,0.0100,92.32,0.03,-92.3100
+rq,gaussian,8,100,10,-,eot_pgd_with_bpda,8.0,2.4400,77.97,33.85,-75.5300
+rq,rq,8,100,10,-,eot_pgd_with_bpda,8.0,0.8500,92.69,2.97,-91.8400

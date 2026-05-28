@@ -3,7 +3,7 @@ import torch.nn as nn
 
 class RandomizedQuantizationAugModule(nn.Module):
     def __init__(self, region_num, collapse_to_val = 'inside_random', spacing='random', transforms_like=False, p_random_apply_rand_quant = 1):
-        """region_num: 分箱数 int。"""
+        # region_num: 分箱数 int
         super().__init__()
         self.region_num = region_num
         self.collapse_to_val = collapse_to_val
@@ -12,14 +12,14 @@ class RandomizedQuantizationAugModule(nn.Module):
         self.p_random_apply_rand_quant = p_random_apply_rand_quant
 
     def get_params(self, x):
-        """x: (C, H, W); 返回每通道的 min/max/分位点数。"""
+        # x: (C, H, W); 返回每通道的 min/max/分位点数
         C, _, _ = x.size()
         min_val, max_val = x.view(C, -1).min(1)[0], x.view(C, -1).max(1)[0]
         total_region_percentile_number = (torch.ones(C) * (self.region_num - 1)).int()
         return min_val, max_val, total_region_percentile_number
 
     def forward(self, x):
-        """x: (B, c, H, W) or (C, H, W)。"""
+        # x: (B, c, H, W) or (C, H, W)
         EPSILON = 1
         if self.p_random_apply_rand_quant != 1:
             x_orig = x

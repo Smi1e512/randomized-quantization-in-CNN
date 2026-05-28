@@ -1,4 +1,4 @@
-"""n_bins 扫描脚本 (论文 §5.2 三类 A/B/C): 同时产出 clean 与 robust 准确率, 加 --paired 走对角线节省 ~89% 算力; 输出列与 evaluate.py 兼容多 eot_k / aa_version。"""
+# n_bins 扫描脚本
 
 import argparse
 import os
@@ -26,7 +26,6 @@ def load_model(checkpoint_path, device):
 
 
 def _build_adaptive_wrapper(args, model, defense, eot_k: int):
-    """为自适应攻击构造可导模型: rq → BPDA + EOT, gaussian → 直接 EOT (本身可导)。"""
     if defense == "rq":
         from src.core import RandomizedQuantizationAugModule
 
@@ -60,7 +59,7 @@ def make_attack(args, model, eps, defense):
     if name == "autoattack":
         version = args.aa_version
         if defense == "no_defense":
-            wrapped = model  # 无随机防御时 'rand' 无意义, 退化到 standard
+            wrapped = model
             if version == "rand":
                 version = "standard"
         else:
@@ -110,7 +109,7 @@ def evaluate_under_attack(args, model, loader, device, eps):
     attacks = {d: make_attack(args, model, eps, d) for d in args.defenses}
     predictors = {d: make_predictor(d, model, args, device) for d in args.defenses}
 
-    cache_attack_for_no_defense = (  # 非自适应攻击不依赖 defense, 三个 defense 共用同一份对抗样本
+    cache_attack_for_no_defense = (
 
         args.attack in ("fgsm", "pgd") and "no_defense" in args.defenses
     )
@@ -135,7 +134,7 @@ def evaluate_under_attack(args, model, loader, device, eps):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="n_bins sweep with clean + robust co-evaluation")
+    parser = argparse.ArgumentParser()
 
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--n_samples", type=int, default=100)
@@ -145,7 +144,6 @@ def parse_args():
     parser.add_argument(
         "--attack", type=str, default="pgd",
         choices=["fgsm", "pgd", "eot_pgd", "autoattack"],
-        help="clean 永远同时跑, 故无 'none' 选项",
     )
     parser.add_argument("--epsilon", type=float, default=8.0, help="单 ε, 单位 1/255")
     parser.add_argument("--pgd_steps", type=int, default=20)
@@ -161,7 +159,6 @@ def parse_args():
     parser.add_argument("--n_bins_list", type=int, nargs="+", required=True)
     parser.add_argument(
         "--paired", action="store_true",
-        help="按下标把 modes[i] 与 n_bins_list[i] 配对 (同源扫描), 不做笛卡尔积",
     )
 
     parser.add_argument("--data_dir", type=str, default="./data")
@@ -235,7 +232,7 @@ def main():
     )
     print(f"结果将写到: {args.out_csv}\n")
 
-    model_cache = {}  # 缓存 model 避免相同 mode 在多个 (mode, n) 对里反复加载
+    model_cache = {}
 
     for idx, (mode, n_bins) in enumerate(pairs, 1):
         ckpt_path = os.path.join(args.checkpoint_dir, f"best_{mode}.pth")
@@ -251,7 +248,7 @@ def main():
             model_cache[mode] = load_model(ckpt_path, device)
         model = model_cache[mode]
 
-        args.n_bins = n_bins  # 透传给下游 make_attack/make_predictor
+        args.n_bins = n_bins
 
 
         clean_results = evaluate_clean_with_defenses(args, model, test_loader, device)

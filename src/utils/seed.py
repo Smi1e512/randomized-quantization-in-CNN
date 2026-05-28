@@ -1,4 +1,4 @@
-"""统一固定 Python / NumPy / PyTorch (CPU+CUDA) 的随机种子。"""
+# 统一固定 Python / NumPy / PyTorch (CPU+CUDA) 的随机种子
 
 import os
 import random
@@ -8,7 +8,7 @@ import torch
 
 
 def set_seed(seed: int = 42, deterministic: bool = False):
-    """deterministic=True 启用 cuDNN 确定性模式, 严格复现但部分算子会变慢。"""
+    # deterministic=True 启用 cuDNN 确定性模式, 严格复现但部分算子会变慢
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)

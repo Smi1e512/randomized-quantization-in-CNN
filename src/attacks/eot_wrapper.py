@@ -1,4 +1,4 @@
-"""EOT (Expectation over Transformations) 包装: 对随机变换采样 k 次平均 logit, 让攻击者梯度对随机性鲁棒, 避免朴素 PGD 高估鲁棒性。"""
+# EOT (Expectation over Transformations)
 
 import torch
 import torch.nn as nn

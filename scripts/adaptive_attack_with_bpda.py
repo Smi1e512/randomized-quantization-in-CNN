@@ -1,4 +1,4 @@
-# 无 BPDA 实验: 主表 3×3 在"无 BPDA 攻击" (EOT-PGD-no-BPDA / AA-rand-no-BPDA) 下的准确率
+# 有 BPDA 实验: 主表 3×3 在"BPDA + EOT 自适应攻击" (EOT-PGD / AA-rand) 下的鲁棒准确率
 
 import argparse
 import os
@@ -10,14 +10,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import torch
 from tqdm import tqdm
 
-from src.attacks import EOTWrapper, build_attack
+from src.attacks import BPDAWrapper, EOTWrapper, build_attack
 from src.core import GaussianSmoothing, RQSmoothing, RandomizedQuantizationAugModule
 from src.data_utils import get_cifar10_test_loader
 from src.models import get_resnet50_cifar10
 from src.utils import CSVLogger, set_seed
 
 
-# 主表 3×3 单元 (mode, defense, clean_known, pgd_known); clean/pgd 来自 clean_per_defense.csv / robust_pgd.csv (n=8, N=100)
+# 主表 3×3 单元 (mode, defense, clean_known, pgd_known); 与 adaptive_attack_without_bpda.py 共用以形成对照
 _CELLS = [
     ("baseline", "no_defense", 95.43,  0.00),
     ("baseline", "gaussian",   25.08, 15.21),
@@ -41,15 +41,16 @@ def load_model(checkpoint_path, device):
     return model
 
 
-def _build_no_bpda_wrapper(args, model, defense, eot_k: int):
+def _build_with_bpda_wrapper(args, model, defense, eot_k: int):
     device = next(model.parameters()).device
 
     if defense == "rq":
         rq = RandomizedQuantizationAugModule(region_num=args.n_bins).to(device)
-        return EOTWrapper(model, rq, k=eot_k)
+        transform = BPDAWrapper(rq)  # 前向走真 RQ, 反向视为 identity, 让攻击拿到非零梯度
+        return EOTWrapper(model, transform, k=eot_k)
 
     if defense == "gaussian":
-        std = args.gaussian_std  # gaussian 本身可导, 不需要 BPDA, 等价于常规 EOT-PGD
+        std = args.gaussian_std  # gaussian 本身可导, 不需要 BPDA, 直接 EOT
 
         def _gauss(x):
             return torch.clamp(x + torch.randn_like(x) * std, 0.0, 1.0)
@@ -60,19 +61,19 @@ def _build_no_bpda_wrapper(args, model, defense, eot_k: int):
 
 
 def make_attack(args, model, eps, defense, attack_name):
-    if attack_name == "eot_pgd_no_bpda":
-        wrapped = _build_no_bpda_wrapper(args, model, defense, eot_k=args.eot_k)
+    if attack_name == "eot_pgd_with_bpda":
+        wrapped = _build_with_bpda_wrapper(args, model, defense, eot_k=args.eot_k)
         return build_attack(
             wrapped, name="pgd", eps=eps,
             alpha=args.pgd_alpha, steps=args.pgd_steps,
         )
 
-    if attack_name == "aa_rand_no_bpda":
+    if attack_name == "aa_rand_with_bpda":
         if defense == "no_defense":
             wrapped = model
             version = "standard"
         else:
-            wrapped = _build_no_bpda_wrapper(args, model, defense, eot_k=1)  # AA 内部带 EOT, 外层不套 BPDA → 对 RQ 反向梯度仍为 0
+            wrapped = _build_with_bpda_wrapper(args, model, defense, eot_k=1)  # AA 内部带 EOT, 外层套 BPDA 让 RQ 反向梯度非零
             version = args.aa_version
         return build_attack(
             wrapped, name="autoattack", eps=eps,
@@ -120,11 +121,11 @@ def evaluate_attack(defense, attack_name, model, loader, eps, args, device):
 def parse_args():
     p = argparse.ArgumentParser()
 
-    p.add_argument("--rq_only", action="store_true", help="仅评测 RQ 推理列 ")
+    p.add_argument("--rq_only", action="store_true", help="仅评测 RQ 推理列")
     p.add_argument(
         "--attacks", type=str, nargs="+",
-        default=["eot_pgd_no_bpda", "aa_rand_no_bpda"],
-        choices=["eot_pgd_no_bpda", "aa_rand_no_bpda"],
+        default=["eot_pgd_with_bpda", "aa_rand_with_bpda"],
+        choices=["eot_pgd_with_bpda", "aa_rand_with_bpda"],
     )
     p.add_argument("--batch_size", type=int, default=64)
     p.add_argument("--n_samples", type=int, default=100)
@@ -175,11 +176,12 @@ def main():
     print(f"n_bins       : {args.n_bins}")
     print(f"ε            : {eps_x255}/255")
     print(f"n_samples    : {args.n_samples}")
-    print(f"eot_k        : {args.eot_k} (EOT 包装在变换外, 但 *不* 套 BPDA)")
+    print(f"eot_k        : {args.eot_k} (EOT 包装在 BPDA 外层)")
     print(f"Total runs   : {n_total_runs}")
     print(f"Out CSV      : {args.out_csv}")
     print(f"{'=' * 72}\n")
 
+    # 输出列 schema 与 adaptive_attack_without_bpda.csv 对齐
     fieldnames = [
         "model", "defense", "n_bins", "n_samples", "eot_k", "aa_version",
         "attack", "eps_x255", "accuracy",
@@ -214,8 +216,8 @@ def main():
             print(f"\n  --> [run {run_idx}/{n_total_runs}] attack={attack_name}")
 
             acc = evaluate_attack(defense, attack_name, model, test_loader, eps, args, device)
-            csv_eot_k = args.eot_k if attack_name == "eot_pgd_no_bpda" else 0
-            csv_aa_ver = args.aa_version if attack_name == "aa_rand_no_bpda" else "-"
+            csv_eot_k = args.eot_k if attack_name == "eot_pgd_with_bpda" else 0
+            csv_aa_ver = args.aa_version if attack_name == "aa_rand_with_bpda" else "-"
             gap = acc - clean_known
 
             print(f"      acc = {acc:.2f}%   (clean={clean_known:.2f}, "

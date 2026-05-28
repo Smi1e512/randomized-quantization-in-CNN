@@ -1,4 +1,4 @@
-"""随机平滑推理基类: 对单图采 N 次随机视图 -> softmax 平均 -> argmax (软投票); 子类只需实现 transform(x)。"""
+# 随机平滑推理基类
 
 import torch
 import torch.nn as nn
@@ -19,7 +19,7 @@ class BaseSmoothing:
         self.device = torch.device(device) if isinstance(device, str) else device
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """子类实现: 对输入做一次随机变换。"""
+        # 子类实现: 对输入做一次随机变换
         raise NotImplementedError
 
     @torch.no_grad()
@@ -37,7 +37,7 @@ class BaseSmoothing:
 
     @torch.no_grad()
     def predict_proba(self, x: torch.Tensor) -> torch.Tensor:
-        """同 predict, 但返回平均概率, 用于可视化置信度。"""
+        # 同 predict, 但返回平均概率, 用于可视化置信度
         self.model.eval()
         batch_size = x.size(0)
         total_probs = torch.zeros(batch_size, self.num_classes, device=self.device)

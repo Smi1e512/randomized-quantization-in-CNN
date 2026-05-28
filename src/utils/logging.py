@@ -1,4 +1,4 @@
-"""轻量 CSV 日志记录器: 一行一记, 支持新建 / 追加两种模式。"""
+# 轻量 CSV 日志记录器
 
 import csv
 import os
@@ -16,7 +16,7 @@ class CSVLogger:
 
     @classmethod
     def append(cls, path, fieldnames):
-        """追加模式: 文件已存在则跳过写表头。"""
+        # 追加模式: 文件已存在则跳过写表头
         if not os.path.exists(path):
             return cls(path, fieldnames)
         return cls(path, fieldnames, _write_header=False)

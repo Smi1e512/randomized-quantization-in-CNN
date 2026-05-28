@@ -1,4 +1,4 @@
-"""BPDA (Athalye et al. ICML 2018): 前向走真 transform, 反向把 transform 视为 identity, 让攻击者绕过不可导防御求梯度; 与 EOTWrapper 正交可叠加。"""
+# BPDA (Athalye et al. ICML 2018)
 
 import torch
 import torch.nn as nn

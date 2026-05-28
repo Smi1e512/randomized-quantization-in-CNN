@@ -1,4 +1,4 @@
-"""对抗攻击工厂: 统一 FGSM / PGD / AutoAttack 构造接口。"""
+# 对抗攻击工厂
 
 import torchattacks
 
@@ -13,7 +13,7 @@ def build_attack(
     n_classes: int = 10,
     seed: int = 42,
 ):
-    """构造 torchattacks 攻击对象; 对随机性防御 model 应传 EOTWrapper 包装版, aa_version 须用 'rand'。"""
+    # 构造 torchattacks 攻击对象
     name = name.lower()
     if name == "fgsm":
         return torchattacks.FGSM(model, eps=eps)
