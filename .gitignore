@@ -1,0 +1,10 @@
+checkpoints/
+
+data/
+
+.venv/
+__pycache__/
+
+Thumbs.db
+
+docs/

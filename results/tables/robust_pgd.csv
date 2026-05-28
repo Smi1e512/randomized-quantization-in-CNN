@@ -1,0 +1,13 @@
+model,attack,eps_x255,n_bins,n_samples,eot_k,aa_version,defense,accuracy
+baseline,none,0,8,100,0,-,no_defense,95.4300
+baseline,pgd,8.0,8,100,0,-,no_defense,0.0000
+baseline,pgd,8.0,8,100,0,-,gaussian,15.2100
+baseline,pgd,8.0,8,100,0,-,rq,19.2900
+gaussian,none,0,8,100,0,-,no_defense,89.9100
+gaussian,pgd,8.0,8,100,0,-,no_defense,7.5200
+gaussian,pgd,8.0,8,100,0,-,gaussian,16.8700
+gaussian,pgd,8.0,8,100,0,-,rq,20.7400
+rq,none,0,8,100,0,-,no_defense,92.3200
+rq,pgd,8.0,8,100,0,-,no_defense,0.0300
+rq,pgd,8.0,8,100,0,-,gaussian,33.8500
+rq,pgd,8.0,8,100,0,-,rq,2.9700
