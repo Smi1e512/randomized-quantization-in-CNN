@@ -1,4 +1,4 @@
-"""ResNet-50 + CIFAR-10 训练入口; --mode 取值 baseline/gaussian/rq, 可用 --resume 从 last_<mode>.pth 续训。"""
+# ResNet-50 + CIFAR-10 训练入口
 
 import sys
 from pathlib import Path
@@ -22,7 +22,7 @@ from tqdm import tqdm
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Train ResNet-50 on CIFAR-10")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, default="baseline", choices=["baseline", "gaussian", "rq"])
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--batch_size", type=int, default=128)
@@ -75,7 +75,6 @@ def train_one_epoch(
 
 
 def evaluate(model, test_loader, criterion, device, args, rq_module=None):
-    """训练时的轻量监控评测, 用与训练一致的输入变换保证 BN 统计量匹配; 真正的鲁棒/clean 评测由 evaluate.py 完成。"""
     model.eval()
     total_loss = 0
     correct = 0
@@ -102,7 +101,6 @@ def evaluate(model, test_loader, criterion, device, args, rq_module=None):
 
 
 def _mode_tag(args):
-    """rq 且 n_bins != 8 时加后缀 rq_n<k>, 否则原样 (n=8 为默认值保持向后兼容)。"""
     if args.mode == "rq" and args.n_bins != 8:
         return f"rq_n{args.n_bins}"
     return args.mode
@@ -126,10 +124,10 @@ def main():
     ]
     if args.resume and os.path.exists(log_path):
         logger = CSVLogger.append(log_path, fieldnames)
-        print(f"训练日志将追加到: {log_path}")
+        print(f"训练日志追加到: {log_path}")
     else:
         logger = CSVLogger(log_path, fieldnames)
-        print(f"训练日志将保存到: {log_path}")
+        print(f"训练日志保存到: {log_path}")
 
     train_loader, test_loader = get_cifar10_loaders(
         data_dir=args.data_dir,
@@ -223,7 +221,7 @@ def main():
         )
 
     print(f"\nTraining complete. Best test accuracy: {best_acc:.2f}%")
-    print(f"训练日志已保存到: {log_path}")
+    print(f"训练日志保存到: {log_path}")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""CIFAR-10 DataLoader 工厂: 像素保持 [0,1] 仅 ToTensor 不做 mean/std 归一化, PGD 的 eps=8/255 直接对应任务书扰动幅度。"""
+# CIFAR-10 DataLoader 工厂
 
 import torch
 from torch.utils.data import DataLoader, Subset
@@ -37,7 +37,7 @@ def get_cifar10_loaders(
     augment: bool = True,
     seed: int | None = None,
 ):
-    """构造训练+测试 DataLoader (供 train.py 用); augment=True 时启用 RandomCrop+HFlip。"""
+    # 构造训练+测试 DataLoader (供 train.py 用)
     train_transform = TRAIN_TRANSFORM_AUG if augment else TRAIN_TRANSFORM_PLAIN
     train_dataset = datasets.CIFAR10(
         root=data_dir, train=True, download=True, transform=train_transform
@@ -67,7 +67,7 @@ def get_cifar10_test_loader(
     num_workers: int = 2,
     num_eval: int | None = None,
 ):
-    """只构造测试集 DataLoader (供 evaluate.py / sweep_*.py); num_eval 截取前 N 张用于 smoke test。"""
+    # 只构造测试集 DataLoader (供 evaluate.py / sweep_*.py)
     test_dataset = datasets.CIFAR10(
         root=data_dir, train=False, download=True, transform=TEST_TRANSFORM
     )

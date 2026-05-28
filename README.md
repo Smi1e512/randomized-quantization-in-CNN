@@ -5,7 +5,7 @@
 ```
 Code/
 ├── src/                算法核心（被脚本 import）
-├── scripts/            可执行入口（5 个 .py，对应 5 类实验）
+├── scripts/            可执行入口
 ├── checkpoints/        训练得到的 .pth 权重
 ├── results/
 │   ├── logs/           训练日志（每模型一份 per-epoch）
@@ -23,7 +23,7 @@ Code/
 |---|---|
 | `randomized_quantization.py` | 随机量化算子。 |
 | `base_smoothing.py` | 随机平滑推理基类：采样 N 次随机变换 → softmax 平均 → argmax 软投票。 |
-| `rq_smoothing.py` | RQ 软投票推理（**本课题主防御**）。 |
+| `rq_smoothing.py` | RQ 软投票推理。 |
 | `gaussian_smoothing.py` | 加性高斯软投票，σ 默认 0.1。 |
 
 ### 2.2 `src/attacks/`　攻击与攻击包装
@@ -47,15 +47,17 @@ Code/
 
 ## 3. 可执行脚本（`scripts/`）
 
-5 个脚本对应论文 5 类实验，按依赖顺序：
+6 个脚本对应论文 6 类实验，按依赖顺序：
 
 | 脚本 | 作用 |
 |---|---|
 | `train.py` | 模型的统一训练入口 |
 | `evaluate.py` | 评测入口 |
 | `sweep_nbins.py` | 分箱数三类扫描 |
-| `adaptive.py` | 自适应攻击评测主入口。 |
+| `sweep_adaptive.py` | 自适应攻击评测主入口。 |
 | `adaptive_attack_without_bpda.py` | 无 BPDA 攻击评测。 |
+| `adaptive_attack_with_bpda.py` | 有 BPDA 攻击评测。 |
+
 
 ---
 
@@ -90,7 +92,7 @@ is_best        是否在此 epoch 刷新最优测试准确率 (0/1)
 | `clean_per_defense.csv` | 3 训练模式 × 3 推理防御 的干净准确率（9 行）。 |
 | `robust_pgd.csv` | 3 训练模式 × 3 推理防御 在 PGD-20 下的鲁棒准确率（主表，13 行）。 |
 | `adaptive_attack_without_bpda.csv` | 3 训练模式 × 3 推理防御在 无 BPDA 的 EOT-PGD / AutoAttack-rand 下的鲁棒准确率（19 行）。 |
-| `eot-pgd.csv` | 3 训练模式 × 3 推理防御 在 BPDA + EOT-PGD（EOT-k=10）下的鲁棒准确率（9 行）。 |
+| `adaptive_attack_with_bpda.csv` | 3 训练模式 × 3 推理防御在 有 BPDA 的 EOT-PGD 下的鲁棒准确率。 |
 | `sweep_nbins_infer.csv` | 固定训练侧、扫描推理侧分箱数 `n_infer ∈ {2,3,5,8,10,15,20,25,30,40}` 的 clean / PGD-20 结果（扫描 A，37 行）。 |
 | `sweep_nbins_train.csv` | 固定推理侧 `n_infer = 8`、扫描 9 个 `rq_n<k>` 训练模型的 clean / PGD-20 结果（扫描 B，41 行）。 |
 | `sweep_nbins_both.csv` | 9 训练侧 × 9 推理侧 = 81 组合的 clean / PGD-20 结果（扫描 C，163 行）。 |

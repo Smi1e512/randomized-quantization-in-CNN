@@ -1,4 +1,4 @@
-"""非自适应攻击评测 (clean / FGSM / PGD-20); 自适应攻击见 sweep_adaptive.py, n_bins 扫描见 sweep_nbins.py; 输出列 model/attack/eps_x255/n_bins/n_samples/defense/accuracy。"""
+# 非自适应攻击评测
 
 import argparse
 import os
@@ -18,17 +18,17 @@ from src.utils import CSVLogger, set_seed
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Evaluate adversarial robustness")
+    parser = argparse.ArgumentParser()
 
     parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--n_samples", type=int, default=100, help="软投票次数")
+    parser.add_argument("--n_samples", type=int, default=100)
     parser.add_argument("--n_bins", type=int, default=8)
     parser.add_argument("--gaussian_std", type=float, default=0.1)
     parser.add_argument("--num_workers", type=int, default=2)
 
     parser.add_argument(
         "--attack", type=str, default="pgd", choices=["none", "fgsm", "pgd"],
-        help="'none' = 只测 clean (走软投票推理); 自适应攻击用 sweep_adaptive.py",
+        help="自适应攻击用 sweep_adaptive.py",
     )
     parser.add_argument("--epsilon", type=float, default=8.0, help="单 ε, 单位 1/255")
     parser.add_argument("--epsilon_list", type=float, nargs="*", default=None, help="多 ε 扫描, 单位 1/255")
@@ -59,7 +59,6 @@ def load_model(checkpoint_path, device):
 
 
 def make_attack(args, model, eps, defense):
-    """非自适应 FGSM/PGD 直攻 base model; 对随机/不可导防御会高估鲁棒性 (梯度遮蔽诊断对象)。"""
     del defense  # 非自适应攻击不依赖 defense, 占位保持接口一致
 
     name = args.attack
@@ -75,7 +74,6 @@ def make_attack(args, model, eps, defense):
 
 
 def make_predictor(defense, model, args, device):
-    """返回 predict(x) -> labels, 按 defense 选择 no_defense/gaussian/rq 推理策略。"""
     if defense == "no_defense":
         @torch.no_grad()
         def _pred(x):
@@ -91,7 +89,6 @@ def make_predictor(defense, model, args, device):
 
 
 def evaluate_clean(model, loader, device):
-    """无攻击 + 无防御 base model 直接前向。"""
     correct = 0
     total = 0
     with torch.no_grad():
@@ -104,7 +101,6 @@ def evaluate_clean(model, loader, device):
 
 
 def evaluate_clean_with_defenses(args, model, loader, device):
-    """无攻击下每个 defense 走软投票推理, 给出"防御模型 clean acc" (任务书 3.2.2.4)。"""
     correct = {d: 0 for d in args.defenses}
     total = 0
     predictors = {d: make_predictor(d, model, args, device) for d in args.defenses}
@@ -119,14 +115,13 @@ def evaluate_clean_with_defenses(args, model, loader, device):
 
 
 def evaluate_under_attack(args, model, loader, device, eps):
-    """每 batch 每 defense 生成对抗样本并预测, 返回 {defense: acc} 字典。"""
     correct = {d: 0 for d in args.defenses}
     total = 0
 
     attacks = {d: make_attack(args, model, eps, d) for d in args.defenses}
     predictors = {d: make_predictor(d, model, args, device) for d in args.defenses}
 
-    cache_attack_for_no_defense = (  # 非自适应 FGSM/PGD 不依赖 defense, 三个 defense 可共用同一份对抗样本
+    cache_attack_for_no_defense = (
 
         args.attack in ("fgsm", "pgd") and "no_defense" in args.defenses
     )
@@ -165,13 +160,12 @@ def main():
 
     n_eval = args.num_eval if args.num_eval is not None else 10000
     print(f"\n{'='*70}")
-    print(f"Eval samples : {n_eval} (全测试集)" if args.num_eval is None
-          else f"Eval samples : {n_eval} (子集 smoke test)")
+    print(f"Eval samples : {n_eval}")
     print(f"Batch size   : {args.batch_size}")
     print(f"Attack       : {args.attack}")
     print(f"Eps (×255)   : {[round(e * 255, 2) for e in eps_list]}")
     print(f"n_bins       : {args.n_bins}")
-    print(f"n_samples    : {args.n_samples} (软投票次数)")
+    print(f"n_samples    : {args.n_samples}")
     print(f"Modes        : {args.modes}")
     print(f"Defenses     : {args.defenses}")
     print(f"{'='*70}\n")
@@ -183,7 +177,7 @@ def main():
         if os.path.exists(args.out_csv)
         else CSVLogger(args.out_csv, fieldnames)
     )
-    print(f"结果将写到: {args.out_csv}")
+    print(f"结果写入: {args.out_csv}\n")
 
     for mode in args.modes:
         ckpt_path = os.path.join(args.checkpoint_dir, f"best_{mode}.pth")
